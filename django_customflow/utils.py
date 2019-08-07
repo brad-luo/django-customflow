@@ -241,9 +241,9 @@ def get_state_relation(obj):
     ctype = ContentType.objects.get_for_model(obj)
     try:
         sor = StateObjectRelation.objects.get(content_type=ctype, content_id=obj.id)
+        return sor
     except StateObjectRelation.DoesNotExist:
-        return ValueError("state relation doesn't exist!")
-    return sor
+        raise ValueError("state relation doesn't exist!")
 
 
 def get_state(obj):
