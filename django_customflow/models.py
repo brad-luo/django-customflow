@@ -250,6 +250,7 @@ class StateObjectRelation(models.Model):
     content_id = models.PositiveIntegerField(_(u"Content id"), blank=True, null=True)
     content = fields.GenericForeignKey(ct_field="content_type", fk_field="content_id")
     state = models.ForeignKey(State, verbose_name=_(u"State"), on_delete=None, )
+    waiting = models.BooleanField(default=False)
 
     def __unicode__(self):
         return "%s %s - %s" % (self.content_type.name, self.content_id, self.state.name)

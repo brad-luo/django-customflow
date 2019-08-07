@@ -2,6 +2,7 @@
 # create_time: 2019/8/5 16:02
 # __author__ = 'brad'
 from . import utils
+from .tasks.base import WaitingTask, BaseTask
 
 
 class WorkflowMixin(object):
@@ -60,12 +61,14 @@ class WorkflowMixin(object):
         return utils.do_transition(self, transition, user)
 
     def do_next_state(self):
-
+        if self.state_is_waiting():
+            print("state is waiting! please use method .state_end_waiting() when the WaitingTask has finished.")
         state = self.get_state()
         transitions = state.transitions.all()
 
         # info:这里代表状态节点是最后的一层了
         if not transitions:
+            print(state.name, "is the end state")
             return False
 
         for transition in transitions:
@@ -76,10 +79,16 @@ class WorkflowMixin(object):
                     continue
             if transition.task:
                 # todo:task是顺序还是异步执行, 还是有前向倚赖,这个需要确定完善
-                task = utils.import_from_string(transition.task)
-                task().run(self, transition)
+                task = utils.import_from_string(transition.task)()
+                if not isinstance(task, (BaseTask, WaitingTask)):
+                    raise TypeError("This task is not Basetask or WaitingTask instance")
+                task.run(self, transition)
             next_state_instance = transition.destination
             self.set_state(next_state_instance)
+
+            # info:This is the waiting task setting.
+            if transition.task and isinstance(task, WaitingTask):
+                self.state_set_waiting()
 
             # info:记录日志
             self.set_log(state=next_state_instance.name, source_state=state.name, transition=transition.name)
@@ -101,3 +110,22 @@ class WorkflowMixin(object):
             return True
         else:
             return False
+
+    def state_is_waiting(self):
+        return utils.get_state_relation(self).waiting
+
+    def state_end_waiting(self):
+        state_relation = utils.get_state_relation(self)
+        if not state_relation.waiting:
+            print("there is no need to set")
+            return None
+        state_relation.waiting = False
+        state_relation.save()
+
+    def state_set_waiting(self):
+        state_relation = utils.get_state_relation(self)
+        if state_relation.waiting:
+            print("there is no need to set")
+            return None
+        state_relation.waiting = True
+        state_relation.save()

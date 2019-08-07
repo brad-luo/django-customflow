@@ -3,8 +3,17 @@
 # __author__ = 'brad'
 
 
-class BaseTask(object):
-    _base = "base"
-
+class RunMixin(object):
     def run(self, obj, transition):
         raise NotImplementedError(".run() must be overridden.")
+
+
+class BaseTask(object, RunMixin):
+    pass
+
+
+class WaitingTask(object, RunMixin):
+    """
+    WaitingTask will set the current state waiting for the task result.
+    """
+    pass

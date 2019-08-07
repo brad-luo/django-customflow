@@ -229,6 +229,23 @@ def get_workflow_for_model(ctype):
         return wor.workflow
 
 
+def get_state_relation(obj):
+    """Returns the current workflow state relation for the passed object.
+
+    **Parameters:**
+
+    obj
+        The object for which the workflow state relation should be returned. Can be any
+        Django model instance.
+    """
+    ctype = ContentType.objects.get_for_model(obj)
+    try:
+        sor = StateObjectRelation.objects.get(content_type=ctype, content_id=obj.id)
+    except StateObjectRelation.DoesNotExist:
+        return ValueError("state relation doesn't exist!")
+    return sor
+
+
 def get_state(obj):
     """Returns the current workflow state for the passed object.
 
@@ -238,13 +255,9 @@ def get_state(obj):
         The object for which the workflow state should be returned. Can be any
         Django model instance.
     """
-    ctype = ContentType.objects.get_for_model(obj)
-    try:
-        sor = StateObjectRelation.objects.get(content_type=ctype, content_id=obj.id)
-    except StateObjectRelation.DoesNotExist:
-        return None
-    else:
-        return sor.state
+    state_relation = get_state_relation(obj)
+    res = state_relation.state if state_relation else None
+    return res
 
 
 def set_state(obj, state):
@@ -265,10 +278,9 @@ def set_state(obj, state):
         sor = StateObjectRelation.objects.get(content_type=ctype, content_id=obj.id)
     except StateObjectRelation.DoesNotExist:
         sor = StateObjectRelation.objects.create(content=obj, state=state)
-    else:
+    finally:
         sor.state = state
         sor.save()
-    # update_permissions(obj)
 
 
 def set_initial_state(obj):
